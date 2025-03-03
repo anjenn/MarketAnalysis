@@ -171,5 +171,5 @@ cython_debug/
 .pypirc
 
 # Project specific
-Pages
-Products
+Pages/
+Products/
