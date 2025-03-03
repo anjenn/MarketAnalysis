@@ -1,7 +1,3 @@
-# if product doesn't exist append
-# keyword: what's in the search
-
-
 import os
 import utils
 from bs4 import BeautifulSoup
@@ -55,9 +51,10 @@ def get_products(product_src_temp, soup):
         for i in product_obj:
             try:
                 obj = {
-                    "PRICE": i.select_one(product_src_temp['PRICE_EL_ID']).get_text(),
-                    "REVIEW_COUNT": i.select_one(product_src_temp['REVIEW_EL_ID']).get_text(),
-                    "UNIT_PRICE": i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()
+                    "PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['PRICE_EL_ID']).get_text()),
+                    "REVIEW_COUNT": utils.clean_and_convert_to_int(i.select_one(product_src_temp['REVIEW_EL_ID']).get_text()),
+                    "UNIT_PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()),
+                    "QUANTITY": utils.convert_to_ml(utils.extract_first_volume(i.select_one(product_src_temp['QUANTITY_ID']).get_text()))
                 }
                 if 'SOLD_COUNT_ID' in product_src_temp: # TEST THIS
                     print("DEBUGGING")

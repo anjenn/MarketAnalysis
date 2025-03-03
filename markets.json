@@ -6,7 +6,8 @@
         "ITEM_PREFIX": "search-product",
         "PRICE_EL_ID": ".price .price-value",
         "REVIEW_EL_ID": ".other-info .rating-total-count",
-        "UNIT_PRICE_ID": ".price .unit-price em:last-child"
+        "UNIT_PRICE_ID": ".price .unit-price em:last-child",
+        "QUANTITY_ID": ".search-product .descriptions .name"
     },
     {
         "market_id": "02",
