@@ -3,11 +3,10 @@
         "MARKET_ID": "01",
         "MARKET_NAME": "쿠팡",
         "SEARCH_ID": "#headerSearchKeyword.coupang-search",
-        "ITEM_PREFIX": ".search-product",
+        "ITEM_PREFIX": "search-product",
         "PRICE_EL_ID": ".price .price-value",
-        "QUANT_EL_ID": "",
         "REVIEW_EL_ID": ".other-info .rating-total-count",
-        "UNIT_PRICE": ".price .unit-price em:last-child"
+        "UNIT_PRICE_ID": ".price .unit-price em:last-child"
     },
     {
         "market_id": "02",

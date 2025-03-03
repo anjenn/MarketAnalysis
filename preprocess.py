@@ -12,34 +12,60 @@ product_path = "./Products"
 markets_json = "./markets.json"
 market_objs = utils.read_json(markets_json)
 
-def return_product_temp(soup):
+def return_product_src_temp(soup):
     for i in market_objs:
         if i['MARKET_NAME'] in soup.get_text():
             return i
 
-def make_file(product_name):
+def make_file(product_name, product_src_temp, soup):
+    content = get_products(product_src_temp, soup)
+    content = json.dumps(content)
+
     for root, _, files in os.walk(product_path):
-        if product_name + '.txt' not in files:
+        if product_name + '.json' not in files:
             print('Info1: File not found')
-            with open(product_path + '/' + product_name + '.txt', 'w') as f:
-                # content= json.dumps()
+            with open(product_path + '/' + product_name + '.json', 'w') as f:
                 f.write(content)
+        else:
+            print('Info2: File found')
+            with open(product_path + '/' + product_name + '.json', 'r+') as f:
+                try:
+                # Read and parse the existing content (assumed to be an array of objects)
+                    existing_data = json.load(f)
+                    if not isinstance(existing_data, list):
+                        existing_data = []
+                    existing_data.extend(json.loads(content))
+                    f.seek(0)  # Move the pointer to the start of the file
+                    f.truncate()  # Clear the file content
+                    json.dump(existing_data, f, indent=4)
 
-def find_products(market_id):
-    case = market_id
-    
-    if case == "01":
-        headerSearchKeyword
+                except json.JSONDecodeError:
+                    print("DEBUGGING")
 
-        return "Apple"
-    elif case == "02":
-        return "Banana"
-    elif case == "03":
-        return "Cherry"
-    else:
-        return "Invalid choice"
+                    # If the file is empty or corrupted, start with an empty list
+                    existing_data = content
+                    f.seek(0)  # Move to the start of the file to write new content
+                    f.truncate()  # Clear the file content
+                    json.dump(existing_data, f, indent=4)
 
-
+def get_products(product_src_temp, soup):
+    class_name = product_src_temp['ITEM_PREFIX']
+    data = []
+    for product_obj in soup.find_all(class_=class_name):
+        for i in product_obj:
+            try:
+                obj = {
+                    "PRICE": i.select_one(product_src_temp['PRICE_EL_ID']).get_text(),
+                    "REVIEW_COUNT": i.select_one(product_src_temp['REVIEW_EL_ID']).get_text(),
+                    "UNIT_PRICE": i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()
+                }
+                if 'SOLD_COUNT_ID' in product_src_temp: # TEST THIS
+                    print("DEBUGGING")
+                    obj['SOLD_COUNT_ID'] = i.select_one(product_src_temp['SOLD_COUNT_ID']).get_text() or ''
+            except Exception as e:
+                print(f"Error0: {e}")
+            data.append(obj)
+    return data
 
 def process_files_in_repo(html_path):
     for root, _, files in os.walk(html_path):
@@ -50,14 +76,13 @@ def process_files_in_repo(html_path):
                     content = f.read()  # Read the file
                     print(f"Read {len(content)} characters from {file_path}")
                     soup = BeautifulSoup(content, 'html.parser')
-                    product_temp = return_product_temp(soup)
+                    product_src_temp = return_product_src_temp(soup)
 
                     # print(soup.prettify())
-                    search_el = soup.select_one(product_temp['SEARCH_ID'])
-                    print(search_el)
+                    search_el = soup.select_one(product_src_temp['SEARCH_ID'])
                     if search_el:
                         product_name = search_el.get("value") 
-                        make_file(product_name, product_temp)
+                        make_file(product_name, product_src_temp, soup)
                     else:
                         print('Error1: Product not found')
 
@@ -67,15 +92,4 @@ def process_files_in_repo(html_path):
 
 
 
-
-
-# Example usage
-# process_files_in_repo(repo_path)
-
-def main():
-    process_files_in_repo(html_path)
-    # check_market()
-
-
-
-main()
+process_files_in_repo(html_path)
