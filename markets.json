@@ -1,26 +1,27 @@
 [
     {
-        "Market_id": "01",
-        "Market_name": "쿠팡",
-        "Search_id": "Search_id",
-        "PriceEl_id": "price",
-        "QuantityEl_id": "quantity",
-        "ReviewEl_id": "reviews-counts"
+        "market_id": "01",
+        "market_name": "쿠팡",
+        "search_id": "#headerSearchKeyword.coupang-search",
+        "priceEl_id": ".price .price-value",
+        "quantityEl_id": "",
+        "reviewEl_id": ".other-info .rating-total-count",
+        "unit_price": ".price .unit-price em:last-child"
     },
     {
-        "Market_id": "02",
-        "Market_name": "11번가",
-        "Search_id": "Search_id",
-        "PriceEl_id": "price",
-        "QuantityEl_id": "quantity",
-        "ReviewEl_id": "reviews-counts"
+        "market_id": "02",
+        "market_name": "11번가",
+        "search_id": "Search_id",
+        "priceEl_id": "price",
+        "quantityEl_id": "quantity",
+        "reviewEl_id": "reviews-counts"
     },
     {
-        "Market_id": "03",
-        "Market_name": "G마켓",
-        "Search_id": "Search_id",
-        "PriceEl_id": "price",
-        "QuantityEl_id": "quantity",
-        "ReviewEl_id": "reviews-counts"
+        "market_id": "03",
+        "market_name": "G마켓",
+        "search_id": "Search_id",
+        "priceEl_id": "price",
+        "quantityEl_id": "quantity",
+        "reviewEl_id": "reviews-counts"
     }
 ]
