@@ -1,12 +1,13 @@
 [
     {
-        "market_id": "01",
-        "market_name": "쿠팡",
-        "search_id": "#headerSearchKeyword.coupang-search",
-        "priceEl_id": ".price .price-value",
-        "quantityEl_id": "",
-        "reviewEl_id": ".other-info .rating-total-count",
-        "unit_price": ".price .unit-price em:last-child"
+        "MARKET_ID": "01",
+        "MARKET_NAME": "쿠팡",
+        "SEARCH_ID": "#headerSearchKeyword.coupang-search",
+        "ITEM_PREFIX": ".search-product",
+        "PRICE_EL_ID": ".price .price-value",
+        "QUANT_EL_ID": "",
+        "REVIEW_EL_ID": ".other-info .rating-total-count",
+        "UNIT_PRICE": ".price .unit-price em:last-child"
     },
     {
         "market_id": "02",

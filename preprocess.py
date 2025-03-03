@@ -5,23 +5,40 @@
 import os
 import utils
 from bs4 import BeautifulSoup
+import json
 
 html_path = "./Html"
 product_path = "./Products"
 markets_json = "./markets.json"
 market_objs = utils.read_json(markets_json)
 
-def return_market_params(soup):
+def return_product_temp(soup):
     for i in market_objs:
-        if i['market_name'] in soup.get_text():
-            return [i['search_id'], i['priceEl_id'], i['quantityEl_id'], i['reviewEl_id'], i['unit_price']]
+        if i['MARKET_NAME'] in soup.get_text():
+            return i
 
-def make_file(item_name):
+def make_file(product_name):
     for root, _, files in os.walk(product_path):
-        if item_name + '.txt' not in files:
-            print('Error1: File not found')
-            with open(product_path + '/' + item_name + '.txt', 'w') as f:
-                f.write('keyword: what\'s in the search')
+        if product_name + '.txt' not in files:
+            print('Info1: File not found')
+            with open(product_path + '/' + product_name + '.txt', 'w') as f:
+                # content= json.dumps()
+                f.write(content)
+
+def find_products(market_id):
+    case = market_id
+    
+    if case == "01":
+        headerSearchKeyword
+
+        return "Apple"
+    elif case == "02":
+        return "Banana"
+    elif case == "03":
+        return "Cherry"
+    else:
+        return "Invalid choice"
+
 
 
 def process_files_in_repo(html_path):
@@ -33,17 +50,16 @@ def process_files_in_repo(html_path):
                     content = f.read()  # Read the file
                     print(f"Read {len(content)} characters from {file_path}")
                     soup = BeautifulSoup(content, 'html.parser')
-                    keywords = return_market_params(soup)
-                    # make_file(keywords[0])
-
+                    product_temp = return_product_temp(soup)
 
                     # print(soup.prettify())
-                    product_el = soup.select_one(keywords[0])
-                    if soup.select_one(keywords[0]):
-                        product_name = product_el.get("value") 
-                        make_file(product_name)
+                    search_el = soup.select_one(product_temp['SEARCH_ID'])
+                    print(search_el)
+                    if search_el:
+                        product_name = search_el.get("value") 
+                        make_file(product_name, product_temp)
                     else:
-                        print('Error2: Product not found')
+                        print('Error1: Product not found')
 
             
             except Exception as e:
