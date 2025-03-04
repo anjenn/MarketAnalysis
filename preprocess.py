@@ -2,9 +2,11 @@ import os
 import utils
 from bs4 import BeautifulSoup
 import json
+import time
 
 html_path = "./Html"
 product_path = "./Products"
+rank_path = "./Ranks"
 markets_json = "./markets.json"
 market_objs = utils.read_json(markets_json)
 
@@ -13,18 +15,17 @@ def return_product_src_temp(soup):
         if i['MARKET_NAME'] in soup.get_text():
             return i
 
-def make_file(product_name, product_src_temp, soup):
-    content = get_products(product_src_temp, soup)
+def make_json(product_name, content):
     content = json.dumps(content)
 
     for root, _, files in os.walk(product_path):
         if product_name + '.json' not in files:
             print('Info1: File not found')
-            with open(product_path + '/' + product_name + '.json', 'w') as f:
+            with open((product_path + '/' + product_name + '.json'), 'w', encoding='utf-8') as f:
                 f.write(content)
         else:
             print('Info2: File found')
-            with open(product_path + '/' + product_name + '.json', 'r+') as f:
+            with open((product_path + '/' + product_name + '.json'), 'r+', encoding='utf-8') as f:
                 try:
                 # Read and parse the existing content (assumed to be an array of objects)
                     existing_data = json.load(f)
@@ -44,6 +45,16 @@ def make_file(product_name, product_src_temp, soup):
                     f.truncate()  # Clear the file content
                     json.dump(existing_data, f, indent=4)
 
+
+
+def make_ranking_report(product_name, product_data):
+    ranked_data = sorted(product_data, key=lambda x: x["REVIEW_COUNT"], reverse=True)
+    formatted_string = ",\n".join(f"{item['TITLE']} / PRICE: {item['PRICE']} / REVIEWS: {item['REVIEW_COUNT']}" for item in ranked_data)
+
+    for root, _, files in os.walk(rank_path):
+        with open((rank_path + '/' + product_name +  str(time.time()) + '.txt'), 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(formatted_string)
+
 def get_products(product_src_temp, soup):
     class_name = product_src_temp['ITEM_PREFIX']
     data = []
@@ -51,6 +62,7 @@ def get_products(product_src_temp, soup):
         for i in product_obj:
             try:
                 obj = {
+                    "TITLE": i.select_one(product_src_temp['QUANTITY_ID']).get_text(),
                     "PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['PRICE_EL_ID']).get_text()),
                     "REVIEW_COUNT": utils.clean_and_convert_to_int(i.select_one(product_src_temp['REVIEW_EL_ID']).get_text()),
                     "UNIT_PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()),
@@ -78,8 +90,11 @@ def process_files_in_repo(html_path):
                     # print(soup.prettify())
                     search_el = soup.select_one(product_src_temp['SEARCH_ID'])
                     if search_el:
-                        product_name = search_el.get("value") 
-                        make_file(product_name, product_src_temp, soup)
+                        product_name = search_el.get("value")
+                        product_data = get_products(product_src_temp, soup)
+                        make_json(product_name, product_data)
+                        make_ranking_report(product_name, product_data)
+                        
                     else:
                         print('Error1: Product not found')
 
