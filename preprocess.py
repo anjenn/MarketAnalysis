@@ -55,25 +55,31 @@ def make_ranking_report(product_name, product_data):
         with open((rank_path + '/' + product_name +  str(time.time()) + '.txt'), 'w', encoding='utf-8', errors='ignore') as f:
             f.write(formatted_string)
 
-def get_products(product_src_temp, soup):
+def get_products(product_src_temp, soup, product_name):
     class_name = product_src_temp['ITEM_PREFIX']
     data = []
     for product_obj in soup.find_all(class_=class_name):
         for i in product_obj:
-            try:
-                obj = {
-                    "TITLE": i.select_one(product_src_temp['QUANTITY_ID']).get_text(),
-                    "PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['PRICE_EL_ID']).get_text()),
-                    "REVIEW_COUNT": utils.clean_and_convert_to_int(i.select_one(product_src_temp['REVIEW_EL_ID']).get_text()),
-                    "UNIT_PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()),
-                    "QUANTITY": utils.convert_to_ml(utils.extract_first_volume(i.select_one(product_src_temp['QUANTITY_ID']).get_text()))
-                }
-                if 'SOLD_COUNT_ID' in product_src_temp: # TEST THIS
-                    print("DEBUGGING")
-                    obj['SOLD_COUNT_ID'] = i.select_one(product_src_temp['SOLD_COUNT_ID']).get_text() or ''
-            except Exception as e:
-                print(f"Error0: {e}")
-            data.append(obj)
+            if utils.contains_first_four(product_name, i.select_one(product_src_temp['QUANTITY_ID']).get_text()) and '세트' not in i.select_one(product_src_temp['QUANTITY_ID']).get_text():
+                try:
+                    obj = {
+                        "TITLE": i.select_one(product_src_temp['QUANTITY_ID']).get_text(),
+                        "ITEM_COUNT": utils.extract_item_count(i.select_one(product_src_temp['QUANTITY_ID']).get_text()) or 1,
+                        "PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['PRICE_EL_ID']).get_text()),
+                        "REVIEW_COUNT": utils.clean_and_convert_to_int(i.select_one(product_src_temp['REVIEW_EL_ID']).get_text()) or 0,
+                        "UNIT_PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()),
+                        "QUANTITY": utils.convert_to_ml(utils.extract_volume(i.select_one(product_src_temp['QUANTITY_ID']).get_text()))
+                    }
+                    total_price = obj['PRICE']
+                    obj['TITLE'] += f'(TOTAL PRICE) {str(total_price)} (UNIT) {str(obj["UNIT_PRICE"])}'
+                    print(total_price)
+                    obj['PRICE'] = total_price / obj['ITEM_COUNT']
+                    if 'SOLD_COUNT_ID' in product_src_temp: # TEST THIS
+                        print("DEBUGGING")
+                        obj['SOLD_COUNT_ID'] = i.select_one(product_src_temp['SOLD_COUNT_ID']).get_text() or ''
+                except Exception as e:
+                    print(f"Error0: {e}")
+                data.append(obj)
     return data
 
 def process_files_in_repo(html_path):
@@ -91,7 +97,7 @@ def process_files_in_repo(html_path):
                     search_el = soup.select_one(product_src_temp['SEARCH_ID'])
                     if search_el:
                         product_name = search_el.get("value")
-                        product_data = get_products(product_src_temp, soup)
+                        product_data = get_products(product_src_temp, soup, product_name)
                         make_json(product_name, product_data)
                         make_ranking_report(product_name, product_data)
                         
