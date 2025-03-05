@@ -25,8 +25,9 @@ scaler_X = joblib.load('scaler_x.pkl')
 quantity = 5000 # change this!
 inv_quantity = 1 / quantity
 log_quantity = np.log1p(quantity)
+total_quantity = FIXED_ITEM_COUNT * quantity
 
-X_new = np.array([FIXED_ITEM_COUNT, quantity, average_top_10, inv_quantity, log_quantity]).reshape(1, -1)
+X_new = np.array([FIXED_ITEM_COUNT, quantity, average_top_10, inv_quantity, log_quantity, total_quantity]).reshape(1, -1)
 
 X_new_scaled = scaler_X.transform(X_new)
 
