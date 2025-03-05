@@ -171,6 +171,7 @@ cython_debug/
 .pypirc
 
 # Project specific
+Html/
 Ranks/
 Products/
 markets.json
