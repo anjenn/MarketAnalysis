@@ -9,8 +9,11 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.model_selection import cross_val_score
+# from sklearn.model_selection import cross_val_score
 import utils
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 data = utils.read_json("./Products/해바라기씨유.json")
 required_keys = {"ITEM_COUNT", "REVIEW_COUNT", "UNIT_PRICE", "QUANTITY"}
@@ -52,9 +55,11 @@ X_val_scaled = scaler_X.transform(X_val)
 y_log = np.log1p(y_train)  # Log transformation for training target
 y_val_log = np.log1p(y_val)  # Log transformation for validation target
 
+joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
+
 # df.describe()
 
-# MODEL TRAINING
+# Feedforward Neural Network (FNN) Model
 model = models.Sequential([
     layers.Input(shape=(X_train_scaled.shape[1],)),
     # layers.Dense(64, activation="relu"),
@@ -68,7 +73,6 @@ model = models.Sequential([
     # layers.Dropout(0.2),
     layers.Dense(1)  # Output: Predicted price
 ])
-
 model.compile(optimizer=Adam(learning_rate=0.0005), loss="mae")
 early_stop = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
 model.fit(
@@ -78,12 +82,65 @@ model.fit(
     callbacks=[early_stop]) # Adjust epochs, batch_size, and validation_split as needed
 
 model.save("optimal_price_model.keras")  # Save the model in HDF5 format
-joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
+
+# Mean Absolute Error (MAE): 28.593538556780153
+# Root Mean Squared Error (RMSE): 44.2110070907123
+# Indices of residual outliers: []
 
 # #############################################################################
-# Evaluation
+# import xgboost as xgb
+
+
+# # XGBoost Model
+# model = xgb.XGBRegressor(
+#     n_estimators=1000,  # Number of boosting rounds
+#     learning_rate=0.01,  # Learning rate
+#     max_depth=5,  # Maximum depth of trees
+#     min_child_weight=1,  # Minimum sum of instance weight (hessian) needed in a child
+#     subsample=0.8,  # Fraction of samples used in each boosting round
+#     colsample_bytree=0.8,  # Fraction of features used for each boosting round
+#     objective='reg:squarederror',  # Regression objective
+#     n_jobs=-1  # Use all available CPU threads
+# )
+
+# # Train the model
+# model.fit(X_train_scaled, y_log)
+
+# # Mean Absolute Error (MAE): 9.128461565290198
+# # Root Mean Squared Error (RMSE): 22.163604236348917
+# # Indices of residual outliers: [9]
+# # #############################################################################
+
+#############################################################################
+from catboost import CatBoostRegressor
+
+# CatBoost model
+model = CatBoostRegressor(
+    iterations=1000,  # Number of boosting rounds
+    learning_rate=0.01,  # Learning rate
+    depth=5,  # Depth of trees
+    loss_function='RMSE',  # Loss function to minimize
+    cat_features=[],  # Specify categorical features if any (empty list if none)
+    verbose=100  # Displaying progress every 100 iterations
+)
+
+# Train the model
+model.fit(X_train_scaled, y_log)
+
+# Mean Absolute Error (MAE): 10.878789415160254
+# Root Mean Squared Error (RMSE): 16.674119917892348
+
+model.save_model('catboost_model.bin')
+
+# #############################################################################
+# #############################################################################
+
+# # Evaluate the model
 y_pred_original = np.expm1(model.predict(X_val_scaled)).ravel()  # Predicted unit price in original scale
 y_val_original = np.expm1(y_val_log).ravel()  # Actual unit price in original scale
+
+mae = mean_absolute_error(y_val_original, y_pred_original)
+rmse = np.sqrt(mean_squared_error(y_val_original, y_pred_original))
 
 # Plot Actual vs Predicted prices
 plt.figure(figsize=(8, 6))
@@ -95,17 +152,10 @@ plt.title('Actual vs Predicted Unit Price')
 plt.grid(True)
 plt.show()
 
-# Optionally, you can also calculate MAE and RMSE to quantify the performance
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-
-mae = mean_absolute_error(y_val_original, y_pred_original)
-rmse = np.sqrt(mean_squared_error(y_val_original, y_pred_original))
-
 print(f"Mean Absolute Error (MAE): {mae}")
 print(f"Root Mean Squared Error (RMSE): {rmse}")
 
 # #############################################################################
-
 # Residuals Calculation
 residuals = np.abs(y_val_original - y_pred_original)  # Calculate absolute residuals
 
@@ -131,7 +181,7 @@ X_val_no_outliers = X_val_scaled[~outliers]  # Remove outliers from validation s
 y_val_no_outliers = y_val_original[~outliers]  # Remove outliers from the target variable
 
 # Optionally, you can evaluate the model performance without outliers
-model.evaluate(X_val_no_outliers, y_val_no_outliers)
+# model.evaluate(X_val_no_outliers, y_val_no_outliers) # Only for Keras models
 
 # Plot Actual vs Predicted Prices with Outliers Removed (if you removed them)
 y_pred_no_outliers = np.expm1(model.predict(X_val_no_outliers))

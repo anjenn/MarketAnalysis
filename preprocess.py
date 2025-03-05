@@ -15,45 +15,21 @@ def return_product_src_temp(soup):
         if i['MARKET_NAME'] in soup.get_text():
             return i
 
-def make_json(product_name, content):
-    content = json.dumps(content)
-
-    for root, _, files in os.walk(product_path):
-        if product_name + '.json' not in files:
-            print('Info1: File not found')
-            with open((product_path + '/' + product_name + '.json'), 'w', encoding='utf-8') as f:
-                f.write(content)
-        else:
-            print('Info2: File found')
-            with open((product_path + '/' + product_name + '.json'), 'r+', encoding='utf-8') as f:
-                try:
-                # Read and parse the existing content (assumed to be an array of objects)
-                    existing_data = json.load(f)
-                    if not isinstance(existing_data, list):
-                        existing_data = []
-                    existing_data.extend(json.loads(content))
-                    f.seek(0)  # Move the pointer to the start of the file
-                    f.truncate()  # Clear the file content
-                    json.dump(existing_data, f, indent=4)
-
-                except json.JSONDecodeError:
-                    print("DEBUGGING")
-
-                    # If the file is empty or corrupted, start with an empty list
-                    existing_data = content
-                    f.seek(0)  # Move to the start of the file to write new content
-                    f.truncate()  # Clear the file content
-                    json.dump(existing_data, f, indent=4)
-
-
 
 def make_ranking_report(product_name, product_data):
-    ranked_data = sorted(product_data, key=lambda x: x["REVIEW_COUNT"], reverse=True)
-    formatted_string = ",\n".join(f"{item['TITLE']} / PRICE: {item['PRICE']} / REVIEWS: {item['REVIEW_COUNT']}" for item in ranked_data)
+    reviews_rank = sorted(product_data, key=lambda x: x["REVIEW_COUNT"], reverse=True)
+    ordered_quantity = sorted(product_data, key=lambda x: x["QUANTITY"], reverse=False)
 
-    for root, _, files in os.walk(rank_path):
-        with open((rank_path + '/' + product_name +  str(time.time()) + '.txt'), 'w', encoding='utf-8', errors='ignore') as f:
-            f.write(formatted_string)
+    cheapest_per_quantity = {}
+    for item in ordered_quantity:
+        qty = item["QUANTITY"]
+        if qty not in cheapest_per_quantity or item["UNIT_PRICE"] < cheapest_per_quantity[qty]["UNIT_PRICE"]:
+            cheapest_per_quantity[qty] = item
+
+    cheapest_items = list(cheapest_per_quantity.values())
+    utils.make_file(rank_path, product_name + 'Reviews_rank', reviews_rank, '.json')
+    utils.make_file(rank_path, product_name + 'Unit_price_by_quantity', cheapest_items, '.json')
+
 
 def get_products(product_src_temp, soup, product_name):
     class_name = product_src_temp['ITEM_PREFIX']
@@ -65,20 +41,13 @@ def get_products(product_src_temp, soup, product_name):
                     obj = {
                         "TITLE": i.select_one(product_src_temp['QUANTITY_ID']).get_text(),
                         "ITEM_COUNT": utils.extract_item_count(i.select_one(product_src_temp['QUANTITY_ID']).get_text()) or 1,
-                        "PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['PRICE_EL_ID']).get_text()),
                         "REVIEW_COUNT": utils.clean_and_convert_to_int(i.select_one(product_src_temp['REVIEW_EL_ID']).get_text()) or 0,
                         "UNIT_PRICE": utils.clean_and_convert_to_int(i.select_one(product_src_temp['UNIT_PRICE_ID']).get_text()),
                         "QUANTITY": utils.convert_to_ml(utils.extract_volume(i.select_one(product_src_temp['QUANTITY_ID']).get_text()))
                     }
-                    total_price = obj['PRICE']
-                    obj['TITLE'] += f'(TOTAL PRICE) {str(total_price)} (UNIT) {str(obj["UNIT_PRICE"])}'
-                    print(total_price)
-                    obj['PRICE'] = total_price / obj['ITEM_COUNT']
-                    if 'SOLD_COUNT_ID' in product_src_temp: # TEST THIS
-                        print("DEBUGGING")
-                        obj['SOLD_COUNT_ID'] = i.select_one(product_src_temp['SOLD_COUNT_ID']).get_text() or ''
+                    # DEBUG above
                 except Exception as e:
-                    print(f"Error0: {e}")
+                    print(f"Error in GET_PRODUCTS: {e}")
                 data.append(obj)
     return data
 
@@ -98,15 +67,14 @@ def process_files_in_repo(html_path):
                     if search_el:
                         product_name = search_el.get("value")
                         product_data = get_products(product_src_temp, soup, product_name)
-                        make_json(product_name, product_data)
+                        utils.make_catalogue(product_name, product_path, product_data)
                         make_ranking_report(product_name, product_data)
                         
                     else:
                         print('Error1: Product not found')
-
             
             except Exception as e:
-                print(f"Could not open {file_path}: {e}")
+                print(f"Error in {file_path}: {e}")
 
 
 

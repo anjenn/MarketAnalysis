@@ -1,9 +1,55 @@
 import json
 import re
+import os
+
+def convert_json_to_txt(file_path, new_file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        with open(new_file_path, 'w', encoding='utf-8') as f:
+            for item in data:
+                f.write(f"{item}\n")
 
 def read_json(file_path):
     with open(file_path, 'r', encoding="utf-8") as f:
         return json.load(f)
+    
+def extend_file(to_be_extended, content):
+    to_be_extended.extend(content)
+    return to_be_extended
+
+def make_file(file_path, file_name, new_content, type):
+    for root, _, files in os.walk(file_path):
+        if (file_name + type) not in files:
+            print('Info1: File not found')
+            with open((file_path + '/' + file_name + type), 'w', encoding='utf-8') as f:
+                json.dump(new_content, f, indent=4)
+        else:
+            print('Info2: File found')
+            with open((file_path + '/' + file_name + type), 'r+', encoding='utf-8') as f:
+                to_be_extended = json.load(f)
+                try:
+                    if type == '.json':
+                        data = extend_file(to_be_extended, new_content)
+                        data = remove_duplicates(data)
+                        f.seek(0)  # Move the pointer to the start of the file
+                        f.truncate()  # Clear the file content
+                        json.dump(data, f, indent=4)
+                        f.write(new_content)
+                        
+                except json.JSONDecodeError:
+                    f.seek(0)  # Move to the start of the file to write new content
+                    f.truncate()  # Clear the file content
+                    json.dump(new_content, f, indent=4)
+
+
+def remove_duplicates(data):
+    unique_data = list({json.dumps(d, sort_keys=True): d for d in data}.values())
+    return unique_data
+
+def make_catalogue(product_name, product_path, content):
+    content = json.loads(json.dumps(content))
+    file_name = product_name
+    make_file(product_path, file_name, content, '.json')
 
 def extract_volume(text):
     pattern = r"(\d+\.?\d*)\s*(l|L|ml|ML)"
@@ -40,15 +86,3 @@ def clean_and_convert_to_int(text):
     # Define characters to remove
     cleaned_text = re.sub(r'[,.\-(){}\[\]_:;\'"!?\@#$%^&*+=|\\/]', "", text)    
     return int(cleaned_text)
-
-# def handle_market_search(case):
-#     if case == "01":
-#         headerSearchKeyword
-
-#         return "Apple"
-#     elif case == "02":
-#         return "Banana"
-#     elif case == "03":
-#         return "Cherry"
-#     else:
-#         return "Invalid choice"
