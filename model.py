@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.model_selection import cross_val_score
 import utils
 
 data = utils.read_json("./Products/해바라기씨유.json")
@@ -22,38 +23,48 @@ df = pd.DataFrame(cleaned_data)
 # df_scaled = df.copy()  # Create a copy to avoid modifying the original dataframe
 # df_scaled[["ITEM_COUNT", "UNIT_PRICE", "QUANTITY", "REVIEW_COUNT"]] = scaler.fit_transform(df[["ITEM_COUNT", "UNIT_PRICE", "QUANTITY", "REVIEW_COUNT"]])
 
-df['INV_QUANTITY'] = 1 / df['QUANTITY']
-df['LOG_QUANTITY'] = np.log1p(df['QUANTITY'])  # log(1 + quantity)
 
-X_raw = df[["ITEM_COUNT", "QUANTITY", "REVIEW_COUNT", "INV_QUANTITY", "LOG_QUANTITY"]].values
+# REMOVING OUTLIERS
+bins = np.linspace(df['QUANTITY'].min(), df['QUANTITY'].max(), num=10)  # 10 bins
+labels = [f"Range {i}" for i in range(len(bins)-1)]  # Labels for each range
+df['QUANTITY_RANGE'] = pd.cut(df['QUANTITY'], bins=bins, labels=labels, include_lowest=True)
+price_median = df.groupby('QUANTITY_RANGE')['UNIT_PRICE'].median().reset_index()
+price_median.columns = ['QUANTITY_RANGE', 'MEDIAN_PRICE']
+df = df.merge(price_median, on='QUANTITY_RANGE', how='left')
+df['PRICE_RATIO'] = df['UNIT_PRICE'] / df['MEDIAN_PRICE']
+df_filtered = df[df['PRICE_RATIO'] <= 1.1]  # Filter out extreme outliers
+df_filtered = df_filtered.drop(columns=['QUANTITY_RANGE', 'MEDIAN_PRICE', 'PRICE_RATIO'])
+print(df_filtered)
+
+
+# FEATURE ENGINEERING
+df_filtered['INV_QUANTITY'] = 1 / df_filtered['QUANTITY']
+df_filtered['LOG_QUANTITY'] = np.log1p(df_filtered['QUANTITY'])  # log(1 + quantity)
+
+X_raw = df_filtered[["ITEM_COUNT", "QUANTITY", "REVIEW_COUNT", "INV_QUANTITY", "LOG_QUANTITY"]].values
 # X_raw  = df[["ITEM_COUNT", "QUANTITY", "REVIEW_COUNT"]].values
-y = df["UNIT_PRICE"].values  # Predict total price
+y = df_filtered["UNIT_PRICE"].values  # Predict total price
 
 X_train, X_val, y_train, y_val = train_test_split(X_raw, y, test_size=0.2, random_state=42)
 
-scaler_X = MinMaxScaler() # Normalization
-
+# Normalization
+scaler_X = MinMaxScaler()
 X_train_scaled = scaler_X.fit_transform(X_train)
 X_val_scaled = scaler_X.transform(X_val)
-
 y_log = np.log1p(y_train)  # Log transformation for training target
 y_val_log = np.log1p(y_val)  # Log transformation for validation target
 
 # df.describe()
 
-print(f"Shape of X_train_scaled: {X_train_scaled.shape}")
-print(f"Shape of X_val_scaled: {X_val_scaled.shape}")
-print(f"Shape of y_log: {y_log.shape}")
-print(f"Shape of y_val_log: {y_val_log.shape}")
-
+# MODEL TRAINING
 model = models.Sequential([
     layers.Input(shape=(X_train_scaled.shape[1],)),
     # layers.Dense(64, activation="relu"),
     # layers.Dense(128, activation="relu"),
     # layers.Dense(64, activation="relu"),
-    layers.Dense(64, activation="relu", kernel_regularizer=l2(0.001)),
-    # layers.Dense(128, activation="relu", kernel_regularizer=l2(0.001)),
-    layers.Dense(32, activation="relu", kernel_regularizer=l2(0.001)),
+    layers.Dense(128, activation="relu", kernel_regularizer=l2(0.0001)),
+    layers.Dense(64, activation="relu", kernel_regularizer=l2(0.0001)),
+    layers.Dense(32, activation="relu", kernel_regularizer=l2(0.0001)),
     layers.Dense(1)  # Output: Predicted price
 ])
 
@@ -62,19 +73,16 @@ early_stop = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights
 model.fit(
     X_train_scaled, y_log,
     epochs=100, batch_size=16,
-    validation_data=(X_val_scaled, np.log1p(y_val)),
-    callbacks=[early_stop])
-
-# Adjust epochs, batch_size, and validation_split as needed
+    validation_data=(X_val_scaled, y_val_log),
+    callbacks=[early_stop]) # Adjust epochs, batch_size, and validation_split as needed
 
 model.save("optimal_price_model.keras")  # Save the model in HDF5 format
 joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
 
-
-
+# #############################################################################
 # Evaluation
-y_pred_original = np.expm1(model.predict(X_val_scaled))  # Predicted unit price in original scale
-y_val_original = np.expm1(y_val_log)  # Actual unit price in original scale
+y_pred_original = np.expm1(model.predict(X_val_scaled)).ravel()  # Predicted unit price in original scale
+y_val_original = np.expm1(y_val_log).ravel()  # Actual unit price in original scale
 
 # Plot Actual vs Predicted prices
 plt.figure(figsize=(8, 6))
@@ -96,29 +104,41 @@ print(f"Mean Absolute Error (MAE): {mae}")
 print(f"Root Mean Squared Error (RMSE): {rmse}")
 
 # #############################################################################
-# Residuals Analysis
-residuals = y_val_original - y_pred_original
 
-# Plot Residuals Distribution (Histogram and Kernel Density Estimate)
+# Residuals Calculation
+residuals = np.abs(y_val_original - y_pred_original)  # Calculate absolute residuals
+
+# You can plot the residuals to visually inspect them
 plt.figure(figsize=(8, 6))
-
-# Histogram for Residuals Distribution
-plt.hist(residuals, bins=30, edgecolor='black', alpha=0.7)
-plt.title('Residuals Distribution')
-plt.xlabel('Residuals (Actual - Predicted)')
+plt.hist(residuals, bins=30, color='skyblue', edgecolor='black')
+plt.title('Distribution of Residuals')
+plt.xlabel('Residuals (|Actual - Predicted|)')
 plt.ylabel('Frequency')
 plt.grid(True)
 plt.show()
 
-# Optionally, use a KDE plot for a smoother residuals distribution view
+# Optionally, you can calculate a threshold to detect outliers in residuals
+threshold = np.mean(residuals) + 3 * np.std(residuals)  # 3 standard deviations as threshold
+outliers = residuals > threshold  # Detect residuals above the threshold
+
+# Display outliers (if any)
+outlier_indices = np.where(outliers)[0]
+print(f"Indices of residual outliers: {outlier_indices}")
+
+# You can remove outliers based on the residuals (if needed)
+X_val_no_outliers = X_val_scaled[~outliers]  # Remove outliers from validation set features
+y_val_no_outliers = y_val_original[~outliers]  # Remove outliers from the target variable
+
+# Optionally, you can evaluate the model performance without outliers
+model.evaluate(X_val_no_outliers, y_val_no_outliers)
+
+# Plot Actual vs Predicted Prices with Outliers Removed (if you removed them)
+y_pred_no_outliers = np.expm1(model.predict(X_val_no_outliers))
 plt.figure(figsize=(8, 6))
-sns.kdeplot(residuals, fill=True)
-plt.title('Residuals Distribution (KDE)')
-plt.xlabel('Residuals (Actual - Predicted)')
-plt.ylabel('Density')
+plt.scatter(y_val_no_outliers, y_pred_no_outliers, alpha=0.6, c='blue')
+plt.plot([y_val_no_outliers.min(), y_val_no_outliers.max()], [y_val_no_outliers.min(), y_val_no_outliers.max()], 'k--', lw=2)
+plt.xlabel('Actual Unit Price')
+plt.ylabel('Predicted Unit Price')
+plt.title('Actual vs Predicted Unit Price (Outliers Removed)')
 plt.grid(True)
 plt.show()
-
-# Check for specific outliers (high residuals)
-outliers = residuals[np.abs(residuals) > np.percentile(np.abs(residuals), 95)]  # For example, look for top 5% residuals
-print("Outliers (high residuals):", outliers)
