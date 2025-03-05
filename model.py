@@ -4,8 +4,6 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import joblib
-import seaborn as sns
-from tensorflow import keras
 from tensorflow.keras import layers, models
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.regularizers import l2
@@ -32,7 +30,7 @@ price_median = df.groupby('QUANTITY_RANGE')['UNIT_PRICE'].median().reset_index()
 price_median.columns = ['QUANTITY_RANGE', 'MEDIAN_PRICE']
 df = df.merge(price_median, on='QUANTITY_RANGE', how='left')
 df['PRICE_RATIO'] = df['UNIT_PRICE'] / df['MEDIAN_PRICE']
-df_filtered = df[df['PRICE_RATIO'] <= 1.1]  # Filter out extreme outliers
+df_filtered = df[df['PRICE_RATIO'] <= 1.4]  # Filter out extreme outliers
 df_filtered = df_filtered.drop(columns=['QUANTITY_RANGE', 'MEDIAN_PRICE', 'PRICE_RATIO'])
 print(df_filtered)
 
@@ -63,12 +61,15 @@ model = models.Sequential([
     # layers.Dense(128, activation="relu"),
     # layers.Dense(64, activation="relu"),
     layers.Dense(128, activation="relu", kernel_regularizer=l2(0.0001)),
+    layers.Dropout(0.2), # Add dropout layer to prevent overfitting
     layers.Dense(64, activation="relu", kernel_regularizer=l2(0.0001)),
+    # layers.Dropout(0.2),
     layers.Dense(32, activation="relu", kernel_regularizer=l2(0.0001)),
+    # layers.Dropout(0.2),
     layers.Dense(1)  # Output: Predicted price
 ])
 
-model.compile(optimizer=Adam(learning_rate=0.001), loss="mse")
+model.compile(optimizer=Adam(learning_rate=0.0005), loss="mae")
 early_stop = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
 model.fit(
     X_train_scaled, y_log,
