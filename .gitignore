@@ -171,5 +171,8 @@ cython_debug/
 .pypirc
 
 # Project specific
-Pages/
+Ranks/
 Products/
+markets.json
+.pkl
+.keras

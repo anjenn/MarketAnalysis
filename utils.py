@@ -5,7 +5,7 @@ def read_json(file_path):
     with open(file_path, 'r', encoding="utf-8") as f:
         return json.load(f)
 
-def extract_first_volume(text):
+def extract_volume(text):
     pattern = r"(\d+\.?\d*)\s*(l|L|ml|ML)"
     
     match = re.search(pattern, text)
@@ -13,6 +13,17 @@ def extract_first_volume(text):
     if match:
         return f"{match.group(1)}{match.group(2).lower()}"
     return None
+
+def extract_item_count(text):
+    match = re.search(r'(\d+)(?=개)', text)
+
+    if match:
+        return int(match.group(1)) if match else None
+    return None
+
+def contains_first_four(keyword, full_text):
+    prefix = keyword[:4]  # Get the first four characters of the target string
+    return prefix in full_text  # Check if it's in the text
 
 def convert_to_ml(text):
     matches = re.findall(r"(\d+\.?\d*)(l|ml)", text)
