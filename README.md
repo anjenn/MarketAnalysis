@@ -16,3 +16,11 @@ Sales Count (Optional) (Total units sold, proxy for demand)
 Output (Y):
 
 Optimal Price for Given Quantity (The price the model predicts will maximize sales/profit)
+
+
+Experimented with FNN, lightgbm, xgboost, catboost
+
+
+똑같은 조건, 가장 가격 낮은 제품품
+
+for site, make ratio - unit price - quantity - ratings - max ratings
