@@ -7,6 +7,6 @@ QUANTITY: Volume of the product in each offer (e.g., 500ml, 1000ml).
 Output (Y):
 Optimal Unit Price: Predicted price to maximize sales/profit for a given quantity.
 
-##########
-Experimented with FNN, lightgbm, xgboost, catboost
+
+Experimented with Keras, lightgbm, xgboost, catboost
 Other metrics to consider further: brand recognition
