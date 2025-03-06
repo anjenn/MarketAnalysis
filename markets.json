@@ -1,23 +1,25 @@
 [
     {
         "MARKET_ID": "01",
+        "MARKET_NAME": "다나와",
+        "SEARCH_ID": "#AKCSearch",
+        "ITEM_PREFIX": "[class^=\"main_prodlist\"] .prod_item",
+        "PRICE_EL_ID": ".price_sect [class*=\"standard_price\"]",
+        "REVIEW_EL_ID": ".text__review .text__number",
+        "UNIT_PRICE_ID": ".prod_pricelist [id^=\"productInfo\"].rank_one .memory_sect span:last-child",
+        "QUANTITY_ID": ".prod_name",
+        "TITLE_ID": ".prod_name b"
+    },
+    {
+        "MARKET_ID": "01",
         "MARKET_NAME": "쿠팡",
         "SEARCH_ID": "#headerSearchKeyword.coupang-search",
-        "ITEM_PREFIX": "search-product",
+        "ITEM_PREFIX": ".search-product",
         "PRICE_EL_ID": ".price .price-value",
         "REVIEW_EL_ID": ".other-info .rating-total-count",
         "UNIT_PRICE_ID": ".price .unit-price em:last-child",
-        "QUANTITY_ID": ".search-product .descriptions .name"
-    },
-    {
-        "MARKET_ID": "02",
-        "MARKET_NAME": "11번가",
-        "SEARCH_ID": "#searchKeyword",
-        "ITEM_PREFIX": "search-product",
-        "PRICE_EL_ID": ".price-value",
-        "REVIEW_EL_ID": ".count",
-        "UNIT_PRICE_ID": ".price-value",
-        "QUANTITY_ID": ".search li .name"
+        "QUANTITY_ID": ".search-product .descriptions .name",
+        "TITLE_ID": ".search-product .descriptions .name"
     },
     {
         "MARKET_ID": "03",

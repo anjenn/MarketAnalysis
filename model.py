@@ -122,8 +122,9 @@ from sklearn.model_selection import cross_val_score
 model = CatBoostRegressor(
     iterations=1200,  # Number of boosting rounds
     learning_rate=0.01,  # Learning rate
-    depth=7,  # Depth of trees
+    depth=6,  # Depth of trees
     loss_function='RMSE',  # Loss function to minimize
+    # loss_function='MAE',  # Loss function to minimize
     cat_features=[],  # Specify categorical features if any (empty list if none)
     verbose=100, # Displaying progress every 100 iterations
     early_stopping_rounds=50,
