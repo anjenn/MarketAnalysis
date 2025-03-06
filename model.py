@@ -17,7 +17,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # data = utils.read_json("./Products/해바라기씨유.json")
 data = utils.read_and_merge_json("./Products", "해바라기")
-required_keys = {"ITEM_COUNT", "REVIEW_RATIO", "UNIT_PRICE", "QUANTITY"}
+required_keys = {"ITEM_COUNT", "REVIEW_RATIO", "REVIEW_COUNT", "UNIT_PRICE", "QUANTITY"}
 
 cleaned_data = [{k: v for k, v in item.items() if k in required_keys} for item in data]
 
@@ -31,7 +31,7 @@ price_median = df.groupby('QUANTITY_RANGE')['UNIT_PRICE'].median().reset_index()
 price_median.columns = ['QUANTITY_RANGE', 'MEDIAN_PRICE']
 df = df.merge(price_median, on='QUANTITY_RANGE', how='left')
 df['PRICE_RATIO'] = df['UNIT_PRICE'] / df['MEDIAN_PRICE']
-df_filtered = df[df['PRICE_RATIO'] <= 1.2]  # Filter out extreme outliers
+df_filtered = df[df['PRICE_RATIO'] <= 1.1]  # Filter out extreme outliers
 df_filtered = df_filtered.drop(columns=['QUANTITY_RANGE', 'MEDIAN_PRICE', 'PRICE_RATIO'])
 print(df_filtered)
 
@@ -41,7 +41,7 @@ df_filtered['INV_QUANTITY'] = 1 / df_filtered['QUANTITY']
 df_filtered['LOG_QUANTITY'] = np.log1p(df_filtered['QUANTITY'])  # log(1 + quantity)
 df_filtered['TOTAL_QUANTITY'] = df_filtered['ITEM_COUNT'] * df_filtered['QUANTITY']
 
-X_raw = df_filtered[["ITEM_COUNT", "QUANTITY", "REVIEW_RATIO", "INV_QUANTITY", "LOG_QUANTITY", "TOTAL_QUANTITY"]].values
+X_raw = df_filtered[["ITEM_COUNT", "QUANTITY", "REVIEW_RATIO", "REVIEW_COUNT", "INV_QUANTITY", "LOG_QUANTITY", "TOTAL_QUANTITY"]].values
 # X_raw  = df[["ITEM_COUNT", "QUANTITY", "REVIEW_RATIO"]].values
 y = df_filtered["UNIT_PRICE"].values  # Predict total price
 
@@ -97,20 +97,60 @@ joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
 # # XGBoost Model
 
 import xgboost as xgb
+from xgboost import cv
 
 model = xgb.XGBRegressor(
-    n_estimators=2000,  # Number of boosting rounds
-    learning_rate=0.005,  # Learning rate
-    max_depth=5,  # Maximum depth of trees
+    n_estimators=2500,  # Number of boosting rounds
+    learning_rate=0.001,  # Learning rate
+    max_depth=8,  # Maximum depth of trees
     min_child_weight=1,  # Minimum sum of instance weight (hessian) needed in a child
-    subsample=0.8,  # Fraction of samples used in each boosting round
-    colsample_bytree=0.8,  # Fraction of features used for each boosting round
+    subsample=0.7,  # Fraction of samples used in each boosting round
+    colsample_bytree=0.7,  # Fraction of features used for each boosting round
     objective='reg:squarederror',  # Regression objective
-    n_jobs=-1  # Use all available CPU threads
+    n_jobs=-1,  # Use all available CPU threads
+    reg_alpha=0.0,  # Remove L1 regularization
+    reg_lambda=0.5,  # Remove L2 regularization
+    eval_metric='rmse',  # Track RMSE during training
+    early_stopping_rounds=100
 )
 
 # Train the model
-model.fit(X_train_scaled, y_log)
+model.fit(
+    X_train_scaled,
+    y_log,
+    eval_set=[(X_train_scaled, y_log)],
+)
+
+params = {
+    'n_estimators': 2500,  # Regression objective
+    'learning_rate': 0.005,  # Root mean square error for evaluation
+    'max_depth': 8,  # Maximum depth of trees
+    'min_child_weight': 1,  # Learning rate
+    'subsample': 0.7,  # Fraction of data to use for each tree
+    'colsample_bytree': 0.7,  # Fraction of features to use for each tree
+    'objective':'reg:squarederror',  # Regression objective
+    'n_jobs': -1,  # Use all available CPU threads
+    'reg_alpha': 0.0,  # Remove L1 regularization
+    'reg_lambda': 0.5, # Remove L2 regularization
+    'eval_metric': 'rmse',  # Track RMSE during training
+}
+
+dtrain = xgb.DMatrix(X_train_scaled, label=y_log)
+
+cv_results = xgb.cv(
+    params=params,
+    dtrain=dtrain,
+    num_boost_round=5000,
+    early_stopping_rounds=100,
+    metrics=["rmse"],
+    seed=42  # For reproducibility
+)
+
+cv_results[['train-rmse-mean', 'test-rmse-mean']].plot(figsize=(10, 6))
+plt.xlabel('Boosting Round')
+plt.ylabel('RMSE')
+plt.title('XGBoost CV RMSE')
+plt.show()
 
 # Mean Absolute Error (MAE): 9.128461565290198
 # Root Mean Squared Error (RMSE): 22.163604236348917
@@ -125,14 +165,15 @@ model.fit(X_train_scaled, y_log)
 
 # model = CatBoostRegressor(
 #     iterations=1200,  # Number of boosting rounds
-#     learning_rate=0.005,  # Learning rate
+#     learning_rate=0.01,  # Learning rate
 #     depth=7,  # Depth of trees
 #     loss_function='RMSE',  # Loss function to minimize
 #     # loss_function='MAE',  # Loss function to minimize
 #     cat_features=[],  # Specify categorical features if any (empty list if none)
 #     verbose=100, # Displaying progress every 100 iterations
 #     early_stopping_rounds=50,
-#     l2_leaf_reg=3.0
+#     l2_leaf_reg=1.0,
+#     border_count=256  # Increase bin count for categorical features
 # )
 
 # # Train the model
