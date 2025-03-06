@@ -115,9 +115,6 @@ def add_review_ratio(product_path):
                     except json.JSONDecodeError:
                         print(f"Error decoding JSON in file: {file_name}")
 
-
-
-
 def process_files_in_repo(html_path):
     for root, _, files in os.walk(html_path):
         for file in files:

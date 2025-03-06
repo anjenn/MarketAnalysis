@@ -1,26 +1,12 @@
-Rules
-
-1. 쿠팡 - 식용유
--> 정확도를 위한 필터: 용기 형태 / 종류 / 용도/ 수량 -> 확인.
--> 상품 개수: 72개.
-
-
-
-Input features (X) include:
-
-Item Price (Current price of the item)
-Item Quantity (Size of the product in mL or L)
-Review Count (Number of reviews, proxy for popularity/trust)
-Sales Count (Optional) (Total units sold, proxy for demand)
+Input Features (X):
+ITEM_COUNT: Number of items in each offer.
+REVIEW_RATIO: Ratio of review counts relative to the platform's maximum.
+UNIT_PRICE: Price per standard quantity (e.g., 100ml).
+QUANTITY: Volume of the product in each offer (e.g., 500ml, 1000ml).
 
 Output (Y):
+Optimal Unit Price: Predicted price to maximize sales/profit for a given quantity.
 
-Optimal Price for Given Quantity (The price the model predicts will maximize sales/profit)
-
-
+##########
 Experimented with FNN, lightgbm, xgboost, catboost
-
-
-똑같은 조건, 가장 가격 낮은 제품품
-
-for site, make ratio - unit price - quantity - ratings - max ratings
+Other metrics to consider further: brand recognition
