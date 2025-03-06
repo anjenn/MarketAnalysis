@@ -64,7 +64,8 @@ def extract_volume(text):
     return 0
 
 def extract_item_count(text):
-    match = re.search(r'(\d+)(?=개|P)', text)
+    # match = re.search(r'(\d+)(?=개|P)', text)
+    match = re.search(r'(\d+)(?=\s*(개|P|입|병))', text)
 
     if match:
         return int(match.group(1)) if match else 1
@@ -94,5 +95,23 @@ def clean_and_convert_to_int(text):
     
     return int(match.group().replace(",", "")) if match else 1
 
+def read_and_merge_json(path, keyword):
+    merged_data = []
+    for filename in os.listdir(path):
+        if filename.endswith(".json") and keyword in filename:
+            file_path = os.path.join(path, filename)
+            try:
+                # Open and load the JSON file
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    print(f'length of data: {len(data)}')
+                    
+                    # Check if the loaded data is a list of dictionaries
+                    if isinstance(data, list) and all(isinstance(item, dict) for item in data):
+                        merged_data.extend(data)  # Merge the data into the final list
+                    else:
+                        print(f"Skipping {filename}, as it does not contain a list of dictionaries.")
+            except Exception as e:
+                print(f"Error reading {filename}: {e}")
 
-    # return int(cleaned_text)
+    return merged_data

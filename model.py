@@ -15,8 +15,9 @@ import utils
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-data = utils.read_json("./Products/해바라기씨유.json")
-required_keys = {"ITEM_COUNT", "REVIEW_COUNT", "UNIT_PRICE", "QUANTITY"}
+# data = utils.read_json("./Products/해바라기씨유.json")
+data = utils.read_and_merge_json("./Products", "해바라기")
+required_keys = {"ITEM_COUNT", "REVIEW_RATIO", "UNIT_PRICE", "QUANTITY"}
 
 cleaned_data = [{k: v for k, v in item.items() if k in required_keys} for item in data]
 
@@ -40,13 +41,13 @@ df_filtered['INV_QUANTITY'] = 1 / df_filtered['QUANTITY']
 df_filtered['LOG_QUANTITY'] = np.log1p(df_filtered['QUANTITY'])  # log(1 + quantity)
 df_filtered['TOTAL_QUANTITY'] = df_filtered['ITEM_COUNT'] * df_filtered['QUANTITY']
 
-X_raw = df_filtered[["ITEM_COUNT", "QUANTITY", "REVIEW_COUNT", "INV_QUANTITY", "LOG_QUANTITY", "TOTAL_QUANTITY"]].values
-# X_raw  = df[["ITEM_COUNT", "QUANTITY", "REVIEW_COUNT"]].values
+X_raw = df_filtered[["ITEM_COUNT", "QUANTITY", "REVIEW_RATIO", "INV_QUANTITY", "LOG_QUANTITY", "TOTAL_QUANTITY"]].values
+# X_raw  = df[["ITEM_COUNT", "QUANTITY", "REVIEW_RATIO"]].values
 y = df_filtered["UNIT_PRICE"].values  # Predict total price
 
 # DATA TILING
-X_tiled = np.tile(X_raw, (4, 1))  # Duplicate the features
-y_tiled = np.tile(y, 4)  # Duplicate the target variable
+X_tiled = np.tile(X_raw, (3, 1))  # Duplicate the features
+y_tiled = np.tile(y, 3)  # Duplicate the target variable
 
 X_train, X_val, y_train, y_val = train_test_split(X_raw, y, test_size=0.2, random_state=42)
 
@@ -61,6 +62,8 @@ joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
 
 # df.describe()
 
+# # #############################################################################
+# # #############################################################################
 # # Feedforward Neural Network (FNN) Model
 # model = models.Sequential([
 #     layers.Input(shape=(X_train_scaled.shape[1],)),
@@ -68,7 +71,7 @@ joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
 #     # layers.Dense(128, activation="relu"),
 #     # layers.Dense(64, activation="relu"),
 #     layers.Dense(128, activation="relu", kernel_regularizer=l2(0.0001)),
-#     layers.Dropout(0.2), # Add dropout layer to prevent overfitting
+#     # layers.Dropout(0.2), # Add dropout layer to prevent overfitting
 #     layers.Dense(64, activation="relu", kernel_regularizer=l2(0.0001)),
 #     # layers.Dropout(0.2),
 #     layers.Dense(32, activation="relu", kernel_regularizer=l2(0.0001)),
@@ -90,60 +93,62 @@ joblib.dump(scaler_X, 'scaler_x.pkl')  # Save the scaler for future use
 # # Indices of residual outliers: []
 
 # # #############################################################################
-# import xgboost as xgb
-
-
+# # #############################################################################
 # # XGBoost Model
-# model = xgb.XGBRegressor(
-#     n_estimators=2000,  # Number of boosting rounds
-#     learning_rate=0.005,  # Learning rate
-#     max_depth=5,  # Maximum depth of trees
-#     min_child_weight=1,  # Minimum sum of instance weight (hessian) needed in a child
-#     subsample=0.8,  # Fraction of samples used in each boosting round
-#     colsample_bytree=0.8,  # Fraction of features used for each boosting round
-#     objective='reg:squarederror',  # Regression objective
-#     n_jobs=-1  # Use all available CPU threads
-# )
 
-# # Train the model
-# model.fit(X_train_scaled, y_log)
+import xgboost as xgb
 
-# # Mean Absolute Error (MAE): 9.128461565290198
-# # Root Mean Squared Error (RMSE): 22.163604236348917
-# # Indices of residual outliers: [9]
-# # # #############################################################################
-
-#############################################################################
-from catboost import CatBoostRegressor
-from sklearn.model_selection import cross_val_score
-
-
-# CatBoost model
-model = CatBoostRegressor(
-    iterations=1200,  # Number of boosting rounds
-    learning_rate=0.01,  # Learning rate
-    depth=6,  # Depth of trees
-    loss_function='RMSE',  # Loss function to minimize
-    # loss_function='MAE',  # Loss function to minimize
-    cat_features=[],  # Specify categorical features if any (empty list if none)
-    verbose=100, # Displaying progress every 100 iterations
-    early_stopping_rounds=50,
-    l2_leaf_reg=3.0
+model = xgb.XGBRegressor(
+    n_estimators=2000,  # Number of boosting rounds
+    learning_rate=0.005,  # Learning rate
+    max_depth=5,  # Maximum depth of trees
+    min_child_weight=1,  # Minimum sum of instance weight (hessian) needed in a child
+    subsample=0.8,  # Fraction of samples used in each boosting round
+    colsample_bytree=0.8,  # Fraction of features used for each boosting round
+    objective='reg:squarederror',  # Regression objective
+    n_jobs=-1  # Use all available CPU threads
 )
 
 # Train the model
 model.fit(X_train_scaled, y_log)
-model.get_feature_importance()
 
-# Mean Absolute Error (MAE): 10.878789415160254
-# Root Mean Squared Error (RMSE): 16.674119917892348
-cv_scores = cross_val_score(model, X_train_scaled, y_log, cv=5, scoring='neg_mean_absolute_error')
-print(f"Cross-Validation MAE: {-np.mean(cv_scores)}")
+# Mean Absolute Error (MAE): 9.128461565290198
+# Root Mean Squared Error (RMSE): 22.163604236348917
+# Indices of residual outliers: [9]
 
-model.save_model('catboost_model.bin')
+# # #############################################################################
+# # #############################################################################
+# # CatBoost model
 
-# #############################################################################
-# #############################################################################
+# from catboost import CatBoostRegressor
+# from sklearn.model_selection import cross_val_score
+
+# model = CatBoostRegressor(
+#     iterations=1200,  # Number of boosting rounds
+#     learning_rate=0.005,  # Learning rate
+#     depth=7,  # Depth of trees
+#     loss_function='RMSE',  # Loss function to minimize
+#     # loss_function='MAE',  # Loss function to minimize
+#     cat_features=[],  # Specify categorical features if any (empty list if none)
+#     verbose=100, # Displaying progress every 100 iterations
+#     early_stopping_rounds=50,
+#     l2_leaf_reg=3.0
+# )
+
+# # Train the model
+# model.fit(X_train_scaled, y_log)
+# model.get_feature_importance()
+
+# # Mean Absolute Error (MAE): 10.878789415160254
+# # Root Mean Squared Error (RMSE): 16.674119917892348
+# cv_scores = cross_val_score(model, X_train_scaled, y_log, cv=5, scoring='neg_mean_absolute_error')
+# print(f"Cross-Validation MAE: {-np.mean(cv_scores)}")
+
+# model.save_model('catboost_model.bin')
+
+# # #############################################################################
+# # #############################################################################
+
 
 # # Evaluate the model
 y_pred_original = np.expm1(model.predict(X_val_scaled)).ravel()  # Predicted unit price in original scale

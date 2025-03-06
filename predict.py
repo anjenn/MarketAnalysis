@@ -7,12 +7,12 @@ import utils
 
 # Load the data
 DATA = utils.read_json("./Products/해바라기씨유.json")
-review_counts = [obj['REVIEW_COUNT'] for obj in DATA]
+review_ratios = [obj['REVIEW_RATIO'] for obj in DATA]
 
 FIXED_ITEM_COUNT = 4
 
-top_10_percentile = np.percentile(review_counts, 90)
-top_10_values = [value for value in review_counts if value >= top_10_percentile]
+top_10_percentile = np.percentile(review_ratios, 90)
+top_10_values = [value for value in review_ratios if value >= top_10_percentile]
 average_top_10  = np.mean(top_10_values)
 
 # Load the trained model
