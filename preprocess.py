@@ -4,8 +4,7 @@ from bs4 import BeautifulSoup
 import json
 import re
 
-html_path = "./Html"
-# html_path = "./Html2"
+HTML_PATH = "./Html3"
 product_path = "./Products"
 rank_path = "./Ranks"
 markets_json = "./markets.json"
@@ -28,8 +27,8 @@ def make_ranking_report(market_name, product_name, product_data):
             cheapest_per_quantity[qty] = item
 
     cheapest_items = list(cheapest_per_quantity.values())
-    utils.make_file(rank_path, market_name + '_' + product_name + 'Reviews_rank', reviews_rank, '.json')
-    utils.make_file(rank_path, market_name + '_' + product_name + 'Unit_price_by_quantity', cheapest_items, '.json')
+    utils.make_file(rank_path, product_name + '_' + market_name + '_' + 'Reviews_rank', reviews_rank, '.json')
+    utils.make_file(rank_path, product_name + '_' + market_name + '_' + 'Unit_price_by_quantity', cheapest_items, '.json')
 
 
 def get_products(product_src_temp, soup, product_name):
@@ -108,7 +107,7 @@ def add_review_ratio(product_path):
                             for obj in product_objs:
                                 obj["REVIEW_RATIO"] = round((obj["REVIEW_COUNT"] / max_review) * 100, 2)
 
-                        print(product_objs)
+                        # print(product_objs)
                         with open(product_path + '/' + file_name + '.json', 'w', encoding='utf-8') as f:  # Open the file for writing
                             json.dump(product_objs, f, indent=4, ensure_ascii=False)  # Write the modified data
 
@@ -130,7 +129,7 @@ def process_files_in_repo(html_path):
                     search_el = soup.select_one(product_src_temp['SEARCH_ID'])
                     # print(search_el.prettify())
                     if search_el:
-                        product_name = search_el.get("value")
+                        product_name = search_el.get("value").replace(" ", "_")
                         product_data = get_products(product_src_temp, soup, product_name)
                         utils.make_catalogue(market_name, product_name, product_path, product_data)
                         make_ranking_report(market_name, product_name, product_data)
@@ -144,6 +143,12 @@ def process_files_in_repo(html_path):
 
  # Needed for better modelling
 
-process_files_in_repo(html_path)
+
+process_files_in_repo(HTML_PATH)
 get_review_counts(product_path, rank_path)
 add_review_ratio(product_path)
+
+json1 = 'Ranks/해바라기유_다나와_Reviews_rank.json'
+json2 = 'Ranks/해바라기유_다나와_Unit_price_by_quantity.json'
+utils.convert_json_to_txt(json1, 'Ranks/reviewsRank')
+utils.convert_json_to_txt(json2, "Ranks/UnitPriceQuantity")

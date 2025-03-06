@@ -7,10 +7,10 @@ def convert_json_to_txt(file_path, new_file_path):
         data = json.load(f)
         with open(new_file_path, 'w', encoding='utf-8') as f:
             for item in data:
-                if isinstance(item, list):  # Check if it's a list
-                    f.write(f"{str(item)}\n")  # Convert list to string before writing
-                else:
-                    f.write(f"{item}\n")
+                # if isinstance(item, list):  # Check if it's a list
+                #     f.write(f"{str(item)}\n")  # Convert list to string before writing
+                # else:
+                f.write(f"{item}\n")
 
 def read_json(file_path):
     with open(file_path, 'r', encoding="utf-8") as f:
@@ -51,7 +51,7 @@ def remove_duplicates(data):
 
 def make_catalogue(market_name, product_name, product_path, content):
     content = json.loads(json.dumps(content))
-    file_name = market_name + '_' + product_name
+    file_name = product_name + '_' + market_name
     make_file(product_path, file_name, content, '.json')
 
 def extract_volume(text):
@@ -72,11 +72,11 @@ def extract_item_count(text):
     return 1
 
 def contains_first_four(keyword, full_text):
-    prefix = keyword[:4]  # Get the first four characters of the target string
-    return prefix in full_text  # Check if it's in the text
+    prefix = keyword[:4].replace(" ", "").replace("_", "") # Get the first four characters of the target string
+    return prefix in full_text.replace(" ", "").replace("_", "")  # Check if it's in the text
 
 def convert_to_ml(text):
-    matches = re.findall(r"(\d+\.?\d*)(l|ml)", text)
+    matches = re.findall(r"(\d+\.?\d*)(l|ml|리터)", text)
     
     for match in matches:
         value, unit = match
@@ -98,7 +98,7 @@ def clean_and_convert_to_int(text):
 def read_and_merge_json(path, keyword):
     merged_data = []
     for filename in os.listdir(path):
-        if filename.endswith(".json") and keyword in filename:
+        if filename.endswith(".json") and contains_first_four(keyword, filename):
             file_path = os.path.join(path, filename)
             try:
                 # Open and load the JSON file

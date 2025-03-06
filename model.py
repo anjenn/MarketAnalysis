@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # data = utils.read_json("./Products/해바라기씨유.json")
-data = utils.read_and_merge_json("./Products", "해바라기")
+data = utils.read_and_merge_json("./Products", "업소용 식용유")
 required_keys = {"ITEM_COUNT", "REVIEW_RATIO", "REVIEW_COUNT", "UNIT_PRICE", "QUANTITY"}
 
 cleaned_data = [{k: v for k, v in item.items() if k in required_keys} for item in data]

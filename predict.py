@@ -69,7 +69,21 @@ def UserInt():
 
     y_pred = np.expm1(y_pred_log) 
     # Output the predictions
-    print("Predicted Optimal Price:", y_pred) 
+    print("Predicted Optimal Price:", y_pred[0]) 
+
+    # FURTHER ANALYSYS
+    LITER = QUANTITY / 1000
+    TRANSPORT_COST = 5000
+    MNT_SCALE = 2.384
+    ESTIMATED_UNIT = y_pred[0]
+
+    TOTAL = (ESTIMATED_UNIT * LITER * MNT_SCALE) +  TRANSPORT_COST
+
+    print(TOTAL)
+
+
+
+
 
 
 UserInt()

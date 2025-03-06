@@ -173,6 +173,7 @@ cython_debug/
 # Project specific
 Html/
 Html2/
+Html3
 Ranks/
 Products/
 markets.json
