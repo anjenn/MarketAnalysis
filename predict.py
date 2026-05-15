@@ -27,11 +27,11 @@ def load_files(PRODUCT_NAME):
 
 def UserInt():
     # Predefined
-    PRODUCT_NAME = input("Please enter product name:") or "해바라기기"
+    PRODUCT_NAME = input("Please enter product name:")
     DATA = load_files(PRODUCT_NAME)
     FIXED_ITEM_COUNT = int(input("Please enter item count:")) or 4
     QUANTITY = int(input("Please enter quantity:")) or 1000
-    MODEL_INPUT = input("Please enter model type: ") or "XGB"
+    MODEL_INPUT = input("Please enter model type:") or "XGB"
     MODEL_TYPE = None
 
     # Caculations

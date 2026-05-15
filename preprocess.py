@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import json
 import re
 
-HTML_PATH = "./Html3"
+HTML_PATH = "./Html4"
 product_path = "./Products"
 rank_path = "./Ranks"
 markets_json = "./markets.json"
